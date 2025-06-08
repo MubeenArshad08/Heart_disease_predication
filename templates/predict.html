@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Health Assessment - Heart Disease Prediction{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-center">
+                <h2 class="mb-2">
+                    <i class="fas fa-stethoscope text-primary"></i>
+                    Heart Health Assessment
+                </h2>
+                <p class="text-muted">
+                    Please provide accurate information for the most reliable prediction.
+                    All data is kept confidential and secure.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: 0%" id="formProgress"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow">
+                <div class="card-body p-4">
+                    <form method="POST" id="predictionForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Basic Information -->
+                        <div class="form-section mb-5">
+                            <h4 class="section-title mb-4">
+                                <i class="fas fa-user text-primary me-2"></i>
+                                Basic Information
+                            </h4>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.age.label(class="form-label fw-bold") }}
+                                    {{ form.age(class="form-control form-control-lg" + (" is-invalid" if form.age.errors else "")) }}
+                                    {% if form.age.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.age.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Enter your current age in years</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    {{ form.sex.label(class="form-label fw-bold") }}
+                                    {{ form.sex(class="form-select form-control-lg" + (" is-invalid" if form.sex.errors else "")) }}
+                                    {% if form.sex.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.sex.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cardiovascular Measurements -->
+                        <div class="form-section mb-5">
+                            <h4 class="section-title mb-4">
+                                <i class="fas fa-heartbeat text-danger me-2"></i>
+                                Cardiovascular Measurements
+                            </h4>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.resting_bp.label(class="form-label fw-bold") }}
+                                    <div class="input-group">
+                                        {{ form.resting_bp(class="form-control form-control-lg" + (" is-invalid" if form.resting_bp.errors else "")) }}
+                                        <span class="input-group-text">mmHg</span>
+                                    </div>
+                                    {% if form.resting_bp.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.resting_bp.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Normal: 90-120 mmHg</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    {{ form.max_hr.label(class="form-label fw-bold") }}
+                                    <div class="input-group">
+                                        {{ form.max_hr(class="form-control form-control-lg" + (" is-invalid" if form.max_hr.errors else "")) }}
+                                        <span class="input-group-text">bpm</span>
+                                    </div>
+                                    {% if form.max_hr.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.max_hr.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Highest heart rate during exercise</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lab Results -->
+                        <div class="form-section mb-5">
+                            <h4 class="section-title mb-4">
+                                <i class="fas fa-vial text-success me-2"></i>
+                                Laboratory Results
+                            </h4>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.cholesterol.label(class="form-label fw-bold") }}
+                                    <div class="input-group">
+                                        {{ form.cholesterol(class="form-control form-control-lg" + (" is-invalid" if form.cholesterol.errors else "")) }}
+                                        <span class="input-group-text">mg/dl</span>
+                                    </div>
+                                    {% if form.cholesterol.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.cholesterol.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">Normal: <200 mg/dl</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">{{ form.fasting_bs.label.text }}</label>
+                                    <div class="form-check form-switch mt-2">
+                                        {{ form.fasting_bs(class="form-check-input form-control-lg") }}
+                                        <label class="form-check-label" for="{{ form.fasting_bs.id }}">
+                                            Blood sugar > 120 mg/dl after fasting
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clinical Symptoms -->
+                        <div class="form-section mb-5">
+                            <h4 class="section-title mb-4">
+                                <i class="fas fa-notes-medical text-info me-2"></i>
+                                Clinical Symptoms & Tests
+                            </h4>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.chest_pain_type.label(class="form-label fw-bold") }}
+                                    {{ form.chest_pain_type(class="form-select form-control-lg" + (" is-invalid" if form.chest_pain_type.errors else "")) }}
+                                    {% if form.chest_pain_type.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.chest_pain_type.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    {{ form.resting_ecg.label(class="form-label fw-bold") }}
+                                    {{ form.resting_ecg(class="form-select form-control-lg" + (" is-invalid" if form.resting_ecg.errors else "")) }}
+                                    {% if form.resting_ecg.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.resting_ecg.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">{{ form.exercise_angina.label.text }}</label>
+                                    <div class="form-check form-switch mt-2">
+                                        {{ form.exercise_angina(class="form-check-input form-control-lg") }}
+                                        <label class="form-check-label" for="{{ form.exercise_angina.id }}">
+                                            Chest pain during exercise
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    {{ form.st_slope.label(class="form-label fw-bold") }}
+                                    {{ form.st_slope(class="form-select form-control-lg" + (" is-invalid" if form.st_slope.errors else "")) }}
+                                    {% if form.st_slope.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.st_slope.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.oldpeak.label(class="form-label fw-bold") }}
+                                    {{ form.oldpeak(class="form-control form-control-lg" + (" is-invalid" if form.oldpeak.errors else ""), step="0.1") }}
+                                    {% if form.oldpeak.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.oldpeak.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">ST depression value (0.0 - 6.2)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+                                <i class="fas fa-brain me-2"></i>
+                                Analyze My Heart Health
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Information Card -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                About This Assessment
+                            </h5>
+                            <p class="mb-0 text-muted">
+                                Our AI model analyzes 11 key health indicators using machine learning 
+                                algorithms trained on medical research data. Results are for informational 
+                                purposes and should not replace professional medical advice.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <i class="fas fa-shield-alt text-success" style="font-size: 3rem;"></i>
+                            <p class="small text-muted mt-2">HIPAA Compliant</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Form progress tracking
+$(document).ready(function() {
+    const form = $('#predictionForm');
+    const progressBar = $('#formProgress');
+    const submitBtn = $('#submitBtn');
+    
+    // Calculate form completion
+    function updateProgress() {
+        const totalFields = form.find('input, select').length;
+        let filledFields = 0;
+        
+        form.find('input, select').each(function() {
+            if ($(this).val() !== '' && $(this).val() !== null) {
+                filledFields++;
+            }
+        });
+        
+        const progress = (filledFields / totalFields) * 100;
+        progressBar.css('width', progress + '%');
+        
+        // Enable submit button when form is complete
+        if (progress === 100) {
+            submitBtn.prop('disabled', false).removeClass('btn-secondary').addClass('btn-primary');
+        } else {
+            submitBtn.prop('disabled', false); // Allow submission even if not 100% complete
+        }
+    }
+    
+    // Update progress on input change
+    form.find('input, select').on('change input', updateProgress);
+    
+    // Initial progress calculation
+    updateProgress();
+    
+    // Form submission with loading state
+    form.on('submit', function() {
+        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...').prop('disabled', true);
+    });
+    
+    // Add tooltips for better UX
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
+
+// Input validation helpers
+function validateNumericInput(input, min, max) {
+    const value = parseInt(input.val());
+    const inputGroup = input.closest('.input-group');
+    
+    if (value < min || value > max) {
+        input.addClass('is-invalid');
+        if (!inputGroup.find('.invalid-feedback').length) {
+            inputGroup.append(`<div class="invalid-feedback">Value must be between ${min} and ${max}</div>`);
+        }
+    } else {
+        input.removeClass('is-invalid');
+        inputGroup.find('.invalid-feedback').remove();
+    }
+}
+
+// Real-time validation
+$('#age').on('blur', function() {
+    validateNumericInput($(this), 1, 120);
+});
+
+$('#resting_bp').on('blur', function() {
+    validateNumericInput($(this), 50, 300);
+});
+
+$('#cholesterol').on('blur', function() {
+    validateNumericInput($(this), 50, 1000);
+});
+
+$('#max_hr').on('blur', function() {
+    validateNumericInput($(this), 60, 250);
+});
+</script>
+{% endblock %}

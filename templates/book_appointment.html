@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Book Appointment - Heart Disease Prediction{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('result', prediction_id=prediction.id) }}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-calendar-plus text-success"></i>
+                        Book Medical Appointment
+                    </h2>
+                    <p class="text-muted mb-0">Schedule a consultation with one of our qualified healthcare professionals</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Level Alert -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-{{ 'danger' if prediction.risk_level == 'High' else 'warning' }}" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h5 class="mb-1">{{ prediction.risk_level }} Risk Assessment Detected</h5>
+                        <p class="mb-0">
+                            Based on your assessment results, we recommend scheduling a consultation with a healthcare professional 
+                            for further evaluation and personalized treatment recommendations.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Appointment Form -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-md text-primary me-2"></i>
+                        Appointment Details
+                    </h5>
+                </div>
+                
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Doctor Selection -->
+                        <div class="mb-4">
+                            {{ form.doctor_name.label(class="form-label fw-bold") }}
+                            {{ form.doctor_name(class="form-select form-control-lg" + (" is-invalid" if form.doctor_name.errors else "")) }}
+                            {% if form.doctor_name.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.doctor_name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                All doctors are board-certified specialists in cardiovascular medicine
+                            </div>
+                        </div>
+                        
+                        <!-- Date and Time -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.appointment_date.label(class="form-label fw-bold") }}
+                                {{ form.appointment_date(class="form-control form-control-lg" + (" is-invalid" if form.appointment_date.errors else "")) }}
+                                {% if form.appointment_date.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.appointment_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.appointment_time.label(class="form-label fw-bold") }}
+                                {{ form.appointment_time(class="form-select form-control-lg" + (" is-invalid" if form.appointment_time.errors else "")) }}
+                                {% if form.appointment_time.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.appointment_time.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Reason for Appointment -->
+                        <div class="mb-4">
+                            {{ form.reason.label(class="form-label fw-bold") }}
+                            {{ form.reason(class="form-control" + (" is-invalid" if form.reason.errors else ""), rows="4", placeholder="Please describe your symptoms, concerns, or the reason for this appointment...") }}
+                            {% if form.reason.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.reason.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Minimum 10 characters required</div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-calendar-check me-2"></i>
+                                Schedule Appointment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Sidebar -->
+        <div class="col-lg-4">
+            <!-- Assessment Summary -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-clipboard-check text-primary me-2"></i>
+                        Your Assessment Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Risk Level:</span>
+                            <span class="badge bg-{{ 'danger' if prediction.risk_level == 'High' else ('warning' if prediction.risk_level == 'Medium' else 'success') }}">
+                                {{ prediction.risk_level }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Confidence:</span>
+                            <span class="fw-bold">{{ "%.1f"|format(prediction.confidence_score * 100) }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Assessment Date:</span>
+                            <span class="small">{{ prediction.created_at.strftime('%m/%d/%Y') }}</span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('result', prediction_id=prediction.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>
+                            View Full Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What to Expect -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle text-info me-2"></i>
+                        What to Expect
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-clock text-primary me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Duration</h6>
+                                <p class="small text-muted mb-0">Initial consultations typically last 45-60 minutes</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-file-medical text-success me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">What to Bring</h6>
+                                <p class="small text-muted mb-0">Medical history, current medications, insurance card</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-stethoscope text-info me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Assessment</h6>
+                                <p class="small text-muted mb-0">Physical exam, review of symptoms, treatment planning</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Notice -->
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <h6 class="text-danger mb-2">Emergency Situations</h6>
+                    <p class="small text-muted mb-3">
+                        If you're experiencing chest pain, shortness of breath, or other emergency symptoms, 
+                        call 911 or go to the nearest emergency room immediately.
+                    </p>
+                    <a href="tel:911" class="btn btn-danger btn-sm">
+                        <i class="fas fa-phone me-1"></i>
+                        Call 911
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        Important Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Before Your Appointment</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Gather all current medications and supplements
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Prepare a list of symptoms and questions
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Bring previous test results if available
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Arrive 15 minutes early for check-in
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">Cancellation Policy</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                    24-hour notice required for cancellations
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                    Late cancellations may incur a fee
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                    Rescheduling is available based on availability
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                    Contact us for appointment changes
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Set minimum date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    $('#appointment_date').attr('min', minDate);
+    
+    // Set maximum date to 6 months from now
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 6);
+    const maxDateStr = maxDate.toISOString().split('T')[0];
+    $('#appointment_date').attr('max', maxDateStr);
+    
+    // Form validation
+    $('form').on('submit', function() {
+        const submitBtn = $(this).find('button[type="submit"]');
+        submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Scheduling...').prop('disabled', true);
+    });
+    
+    // Character counter for reason field
+    const reasonField = $('#reason');
+    const charCount = $('<div class="form-text"><span id="charCount">0</span> / 500 characters</div>');
+    reasonField.after(charCount);
+    
+    reasonField.on('input', function() {
+        const length = $(this).val().length;
+        $('#charCount').text(length);
+        
+        if (length < 10) {
+            $(this).addClass('is-invalid').removeClass('is-valid');
+        } else {
+            $(this).addClass('is-valid').removeClass('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}

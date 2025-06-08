@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}AI Health Assistant - Heart Disease Prediction{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('result', prediction_id=prediction.id) }}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-robot text-info"></i>
+                        AI Health Assistant
+                    </h2>
+                    <p class="text-muted mb-0">Get personalized health guidance based on your assessment results</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assessment Context -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-{{ 'danger' if prediction.risk_level == 'High' else ('warning' if prediction.risk_level == 'Medium' else 'info') }}" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-heartbeat me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h5 class="mb-1">Assessment Context: {{ prediction.risk_level }} Risk Level</h5>
+                        <p class="mb-0">
+                            The AI assistant will provide guidance based on your {{ prediction.risk_level.lower() }} risk assessment 
+                            with {{ "%.1f"|format(prediction.confidence_score * 100) }}% confidence.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Chat Interface -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-robot me-2"></i>
+                        <h5 class="mb-0">AI Health Assistant</h5>
+                        <span class="badge bg-light text-primary ms-auto">
+                            <i class="fas fa-circle text-success" style="font-size: 0.5rem;"></i>
+                            Online
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    <!-- Chat Messages -->
+                    <div id="chatMessages" class="chat-container p-3" style="height: 400px; overflow-y: auto;">
+                        <!-- Welcome Message -->
+                        <div class="message ai-message mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="message-content">
+                                    <div class="bg-light rounded p-3">
+                                        <p class="mb-2">
+                                            Hello! I'm your AI health assistant. I've reviewed your heart disease risk assessment 
+                                            showing <strong>{{ prediction.risk_level }} risk</strong> with 
+                                            <strong>{{ "%.1f"|format(prediction.confidence_score * 100) }}% confidence</strong>.
+                                        </p>
+                                        <p class="mb-0">
+                                            I can help answer questions about your results, lifestyle recommendations, 
+                                            symptoms to watch for, and general heart health guidance. What would you like to know?
+                                        </p>
+                                    </div>
+                                    <small class="text-muted">Just now</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Previous Consultations -->
+                        {% for consultation in consultations %}
+                        <!-- User Question -->
+                        <div class="message user-message mb-3">
+                            <div class="d-flex align-items-start justify-content-end">
+                                <div class="message-content me-3">
+                                    <div class="bg-primary text-white rounded p-3">
+                                        <p class="mb-0">{{ consultation.question }}</p>
+                                    </div>
+                                    <small class="text-muted d-block text-end">{{ consultation.created_at.strftime('%m/%d/%Y %I:%M %p') }}</small>
+                                </div>
+                                <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Response -->
+                        <div class="message ai-message mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="message-content">
+                                    <div class="bg-light rounded p-3">
+                                        <p class="mb-0">{{ consultation.ai_response }}</p>
+                                    </div>
+                                    <small class="text-muted">{{ consultation.created_at.strftime('%m/%d/%Y %I:%M %p') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Message Input -->
+                    <div class="border-top p-3">
+                        <form method="POST" id="chatForm">
+                            <div class="input-group">
+                                <input type="text" name="question" class="form-control" 
+                                       placeholder="Ask me about your heart health..." 
+                                       required minlength="10" maxlength="500" id="questionInput">
+                                <button type="submit" class="btn btn-primary" id="sendBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Ask about symptoms, lifestyle changes, diet, exercise, or general heart health questions.
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Questions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        Quick Questions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm quick-question" 
+                                data-question="What lifestyle changes should I make based on my assessment?">
+                            <i class="fas fa-running me-1"></i>
+                            Lifestyle Changes
+                        </button>
+                        
+                        <button class="btn btn-outline-success btn-sm quick-question" 
+                                data-question="What diet recommendations do you have for my heart health?">
+                            <i class="fas fa-apple-alt me-1"></i>
+                            Diet Recommendations
+                        </button>
+                        
+                        <button class="btn btn-outline-info btn-sm quick-question" 
+                                data-question="What symptoms should I watch out for?">
+                            <i class="fas fa-eye me-1"></i>
+                            Warning Symptoms
+                        </button>
+                        
+                        <button class="btn btn-outline-warning btn-sm quick-question" 
+                                data-question="What exercise is safe for my risk level?">
+                            <i class="fas fa-dumbbell me-1"></i>
+                            Exercise Guidance
+                        </button>
+                        
+                        <button class="btn btn-outline-danger btn-sm quick-question" 
+                                data-question="When should I seek immediate medical attention?">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Emergency Signs
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assessment Summary -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-clipboard-check text-primary me-2"></i>
+                        Assessment Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Risk Level:</span>
+                            <span class="badge bg-{{ 'danger' if prediction.risk_level == 'High' else ('warning' if prediction.risk_level == 'Medium' else 'success') }}">
+                                {{ prediction.risk_level }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Confidence:</span>
+                            <span class="fw-bold">{{ "%.1f"|format(prediction.confidence_score * 100) }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Age:</span>
+                            <span>{{ prediction.health_data.age }} years</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Blood Pressure:</span>
+                            <span>{{ prediction.health_data.resting_bp }} mmHg</span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('result', prediction_id=prediction.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>
+                            Full Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-route text-success me-2"></i>
+                        Recommended Next Steps
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if prediction.risk_level == 'High' %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>High Priority:</strong> Schedule a medical appointment within 1-2 weeks.
+                    </div>
+                    {% elif prediction.risk_level == 'Medium' %}
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        <strong>Recommended:</strong> Consider scheduling a consultation within 1 month.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        {% if prediction.risk_level in ['High', 'Medium'] %}
+                        <a href="{{ url_for('book_appointment', prediction_id=prediction.id) }}" 
+                           class="btn btn-success btn-sm">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Book Appointment
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('predict') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-redo me-1"></i>
+                            New Assessment
+                        </a>
+                        
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-tachometer-alt me-1"></i>
+                            Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-warning" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3"></i>
+                    <div>
+                        <strong>Medical Disclaimer:</strong> 
+                        This AI assistant provides general health information based on your assessment results. 
+                        It is not a substitute for professional medical advice, diagnosis, or treatment. 
+                        Always consult with qualified healthcare professionals for medical decisions.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    const chatMessages = $('#chatMessages');
+    const chatForm = $('#chatForm');
+    const questionInput = $('#questionInput');
+    const sendBtn = $('#sendBtn');
+    
+    // Scroll to bottom of chat
+    function scrollToBottom() {
+        chatMessages.scrollTop(chatMessages[0].scrollHeight);
+    }
+    
+    // Initial scroll to bottom
+    scrollToBottom();
+    
+    // Handle quick questions
+    $('.quick-question').on('click', function() {
+        const question = $(this).data('question');
+        questionInput.val(question);
+        questionInput.focus();
+    });
+    
+    // Handle form submission
+    chatForm.on('submit', function(e) {
+        const question = questionInput.val().trim();
+        
+        if (question.length < 10) {
+            e.preventDefault();
+            alert('Please enter at least 10 characters for your question.');
+            return;
+        }
+        
+        // Show loading state
+        sendBtn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+        questionInput.prop('disabled', true);
+        
+        // Add user message to chat immediately
+        addUserMessage(question);
+        questionInput.val('');
+        scrollToBottom();
+    });
+    
+    // Add user message to chat
+    function addUserMessage(message) {
+        const userMessage = `
+            <div class="message user-message mb-3">
+                <div class="d-flex align-items-start justify-content-end">
+                    <div class="message-content me-3">
+                        <div class="bg-primary text-white rounded p-3">
+                            <p class="mb-0">${message}</p>
+                        </div>
+                        <small class="text-muted d-block text-end">Just now</small>
+                    </div>
+                    <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.append(userMessage);
+        
+        // Add typing indicator
+        const typingIndicator = `
+            <div class="message ai-message mb-3" id="typingIndicator">
+                <div class="d-flex align-items-start">
+                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="bg-light rounded p-3">
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.append(typingIndicator);
+        scrollToBottom();
+    }
+    
+    // Character counter for input
+    questionInput.on('input', function() {
+        const length = $(this).val().length;
+        const maxLength = 500;
+        
+        if (length > maxLength - 50) {
+            $(this).addClass('border-warning');
+        } else {
+            $(this).removeClass('border-warning');
+        }
+        
+        // Enable/disable send button
+        if (length >= 10 && length <= maxLength) {
+            sendBtn.prop('disabled', false);
+        } else {
+            sendBtn.prop('disabled', true);
+        }
+    });
+    
+    // Handle Enter key
+    questionInput.on('keypress', function(e) {
+        if (e.which === 13 && !e.shiftKey) {
+            e.preventDefault();
+            if (!sendBtn.prop('disabled')) {
+                chatForm.submit();
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.chat-container {
+    background-color: #f8f9fa;
+}
+
+.message {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #6c757d;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
+</style>
+{% endblock %}

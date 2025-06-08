@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Heart Disease Prediction{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row align-items-center min-vh-75">
+        <div class="col-lg-6">
+            <div class="hero-content">
+                <h1 class="display-4 fw-bold text-primary mb-4">
+                    <i class="fas fa-heartbeat text-danger"></i>
+                    Heart Disease Prediction
+                </h1>
+                <p class="lead mb-4">
+                    Advanced AI-powered assessment to help evaluate your heart disease risk. 
+                    Get personalized insights and connect with healthcare professionals.
+                </p>
+                
+                <div class="d-flex gap-3 flex-wrap">
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                    </a>
+                    <a href="{{ url_for('predict') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-stethoscope"></i> Start Assessment
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus"></i> Get Started
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="hero-image text-center">
+                <i class="fas fa-heart-pulse display-1 text-danger opacity-75"></i>
+                <div class="mt-4">
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <i class="fas fa-brain text-primary fs-1"></i>
+                                <small class="text-muted">AI Powered</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <i class="fas fa-shield-alt text-success fs-1"></i>
+                                <small class="text-muted">Secure</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card bg-light border-0 text-center p-3">
+                                <i class="fas fa-clock text-warning fs-1"></i>
+                                <small class="text-muted">Fast Results</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5">How It Works</h2>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-clipboard-list text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="card-title">1. Health Assessment</h5>
+                    <p class="card-text">
+                        Complete our comprehensive health questionnaire with your medical information 
+                        including age, blood pressure, cholesterol levels, and lifestyle factors.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-microchip text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="card-title">2. AI Analysis</h5>
+                    <p class="card-text">
+                        Our advanced machine learning model analyzes your data using proven medical 
+                        risk factors to provide an accurate heart disease risk assessment.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-user-md text-info" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="card-title">3. Professional Care</h5>
+                    <p class="card-text">
+                        Get personalized recommendations, consult with our AI assistant, 
+                        or book appointments with qualified healthcare professionals.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Section -->
+    <div class="row mt-5 bg-light rounded p-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Why Choose Our Platform?</h2>
+        </div>
+        
+        <div class="col-md-6">
+            <ul class="list-unstyled">
+                <li class="mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>Evidence-Based:</strong> Built on established medical research and guidelines
+                </li>
+                <li class="mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>Privacy Protected:</strong> Your health data is encrypted and secure
+                </li>
+                <li class="mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>Professional Network:</strong> Connect with qualified cardiologists
+                </li>
+            </ul>
+        </div>
+        
+        <div class="col-md-6">
+            <ul class="list-unstyled">
+                <li class="mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>Comprehensive Tracking:</strong> Monitor your health history over time
+                </li>
+                <li class="mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>AI Assistant:</strong> Get instant answers to your health questions
+                </li>
+                <li class="mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>Early Detection:</strong> Identify risks before symptoms appear
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    {% if not current_user.is_authenticated %}
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <div class="bg-primary text-white rounded p-5">
+                <h3 class="mb-3">Ready to Take Control of Your Heart Health?</h3>
+                <p class="mb-4">Join thousands of users who have already benefited from our heart disease risk assessment.</p>
+                <a href="{{ url_for('register') }}" class="btn btn-light btn-lg">
+                    <i class="fas fa-rocket"></i> Start Your Assessment Now
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Disclaimer -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="alert alert-warning" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Medical Disclaimer:</strong> This tool is for educational and informational purposes only. 
+                It is not intended to replace professional medical advice, diagnosis, or treatment. 
+                Always consult your physician or other qualified health provider with any questions about your medical condition.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Heart Disease Prediction{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Welcome back, {{ current_user.first_name }}!</h2>
+                    <p class="text-muted mb-0">Monitor your heart health and stay on top of your wellness journey.</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('predict') }}" class="btn btn-primary">
+                        <i class="fas fa-stethoscope"></i>
+                        New Assessment
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-chart-line text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="card-title text-primary">{{ total_predictions }}</h4>
+                    <p class="card-text text-muted">Total Assessments</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="card-title text-warning">{{ high_risk_predictions }}</h4>
+                    <p class="card-text text-muted">High Risk Results</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-calendar-check text-success" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="card-title text-success">{{ upcoming_appointments|length }}</h4>
+                    <p class="card-text text-muted">Upcoming Appointments</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-heartbeat text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                    <h4 class="card-title text-danger">
+                        {% if recent_predictions %}
+                            {{ recent_predictions[0].risk_level }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </h4>
+                    <p class="card-text text-muted">Latest Risk Level</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Predictions -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history text-primary me-2"></i>
+                            Recent Assessments
+                        </h5>
+                        <a href="{{ url_for('predict') }}" class="btn btn-sm btn-outline-primary">
+                            New Assessment
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    {% if recent_predictions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Risk Level</th>
+                                        <th>Confidence</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prediction in recent_predictions %}
+                                    <tr>
+                                        <td>{{ prediction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'danger' if prediction.risk_level == 'High' else ('warning' if prediction.risk_level == 'Medium' else 'success') }}">
+                                                {{ prediction.risk_level }}
+                                            </span>
+                                        </td>
+                                        <td>{{ "%.1f"|format(prediction.confidence_score * 100) }}%</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('result', prediction_id=prediction.id) }}" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if prediction.risk_level in ['High', 'Medium'] %}
+                                                <a href="{{ url_for('book_appointment', prediction_id=prediction.id) }}" 
+                                                   class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-calendar-plus"></i>
+                                                </a>
+                                                <a href="{{ url_for('ai_assistant', prediction_id=prediction.id) }}" 
+                                                   class="btn btn-outline-info btn-sm">
+                                                    <i class="fas fa-robot"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clipboard-list text-muted" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3 text-muted">No assessments yet</h5>
+                            <p class="text-muted">Take your first heart health assessment to get started.</p>
+                            <a href="{{ url_for('predict') }}" class="btn btn-primary">
+                                <i class="fas fa-stethoscope"></i>
+                                Start Assessment
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Appointments & Quick Actions -->
+        <div class="col-lg-4">
+            <!-- Upcoming Appointments -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt text-success me-2"></i>
+                        Upcoming Appointments
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    {% if upcoming_appointments %}
+                        {% for appointment in upcoming_appointments %}
+                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ appointment.doctor_name }}</h6>
+                                <p class="mb-0 text-muted small">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ appointment.appointment_date.strftime('%B %d, %Y') }}
+                                </p>
+                                <p class="mb-0 text-muted small">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ appointment.appointment_time }}
+                                </p>
+                            </div>
+                            <div>
+                                <span class="badge bg-{{ 'success' if appointment.status == 'scheduled' else 'secondary' }}">
+                                    {{ appointment.status.title() }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-times text-muted" style="font-size: 2rem;"></i>
+                            <p class="mt-2 text-muted">No upcoming appointments</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt text-warning me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('predict') }}" class="btn btn-primary">
+                            <i class="fas fa-stethoscope me-2"></i>
+                            New Health Assessment
+                        </a>
+                        
+                        {% if recent_predictions and recent_predictions[0].risk_level in ['High', 'Medium'] %}
+                        <a href="{{ url_for('book_appointment', prediction_id=recent_predictions[0].id) }}" 
+                           class="btn btn-success">
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            Book Appointment
+                        </a>
+                        
+                        <a href="{{ url_for('ai_assistant', prediction_id=recent_predictions[0].id) }}" 
+                           class="btn btn-info">
+                            <i class="fas fa-robot me-2"></i>
+                            AI Consultation
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Tips -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        Heart Health Tips
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <i class="fas fa-running text-primary" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h6>Stay Active</h6>
+                                    <p class="text-muted small mb-0">
+                                        Aim for at least 150 minutes of moderate exercise per week.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <i class="fas fa-apple-alt text-success" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h6>Eat Healthy</h6>
+                                    <p class="text-muted small mb-0">
+                                        Include fruits, vegetables, and whole grains in your diet.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <i class="fas fa-spa text-info" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <div>
+                                    <h6>Manage Stress</h6>
+                                    <p class="text-muted small mb-0">
+                                        Practice relaxation techniques and get adequate sleep.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
