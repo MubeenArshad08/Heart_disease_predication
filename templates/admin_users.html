@@ -54,7 +54,7 @@
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <h3 class="text-warning">{{ users.items|selectattr('created_at', '>=', (moment().subtract(7, 'days').datetime))|list|length }}</h3>
+                    <h3 class="text-warning">{{ users.items|selectattr('created_at', 'ge', seven_days_ago)|list|length }}</h3>
                     <p class="text-muted mb-0">New This Week</p>
                 </div>
             </div>

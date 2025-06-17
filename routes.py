@@ -513,8 +513,8 @@ def admin_users():
     page = request.args.get('page', 1, type=int)
     users = User.query.order_by(User.created_at.desc()).paginate(
         page=page, per_page=20, error_out=False)
-    
-    return render_template('admin_users.html', users=users)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    return render_template('admin_users.html', users=users, seven_days_ago=seven_days_ago)
 
 @app.route('/admin/user/<int:user_id>/toggle-admin', methods=['POST'])
 @login_required
