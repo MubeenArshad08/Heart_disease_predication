@@ -61,6 +61,46 @@
         </div>
     </div>
 
+    <!-- Search and Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('admin_users_search') }}" class="row align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">Search Users</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="q" 
+                                       placeholder="Search by username, email, or name..." 
+                                       value="{{ search_query or '' }}">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Role Filter</label>
+                            <select class="form-select" name="role" onchange="this.form.submit()">
+                                <option value="all">All Roles</option>
+                                <option value="admin" {{ 'selected' if request.args.get('role') == 'admin' else '' }}>Admin Only</option>
+                                <option value="user" {{ 'selected' if request.args.get('role') == 'user' else '' }}>Regular Users Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>
+                                    Clear Filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Users Table -->
     <div class="row">
         <div class="col-12">

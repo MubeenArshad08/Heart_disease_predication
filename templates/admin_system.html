@@ -211,6 +211,36 @@
                         </div>
                         
                         <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-database text-success mb-3" style="font-size: 2rem;"></i>
+                                    <h6 class="card-title">Backup Database</h6>
+                                    <p class="card-text small text-muted">Create database backup</p>
+                                    <form method="POST" action="{{ url_for('backup_database') }}">
+                                        <button type="submit" class="btn btn-outline-success btn-sm">
+                                            <i class="fas fa-save me-1"></i>
+                                            Create Backup
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-alt text-primary mb-3" style="font-size: 2rem;"></i>
+                                    <h6 class="card-title">System Logs</h6>
+                                    <p class="card-text small text-muted">View system activity logs</p>
+                                    <a href="{{ url_for('admin_logs') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>
+                                        View Logs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
                             <div class="card border-secondary">
                                 <div class="card-body text-center">
                                     <i class="fas fa-cog text-secondary mb-3" style="font-size: 2rem;"></i>

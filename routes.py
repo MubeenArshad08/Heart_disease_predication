@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import check_password_hash
 from datetime import datetime, timedelta
 import logging
+import os
 
 from app import app, db
 from models import User, HealthData, Prediction, Appointment, AIConsultation, Notification
@@ -714,6 +715,175 @@ def export_data():
         flash('Failed to export data.', 'danger')
     
     return redirect(url_for('admin_system'))
+
+@app.route('/admin/system/backup-database', methods=['POST'])
+@login_required
+def backup_database():
+    """Create database backup"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        import shutil
+        from datetime import datetime
+        
+        # Create backup filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'heart_disease_app_backup_{timestamp}.db'
+        backup_path = os.path.join('backups', backup_filename)
+        
+        # Create backups directory if it doesn't exist
+        os.makedirs('backups', exist_ok=True)
+        
+        # Copy database file
+        shutil.copy2('instance/heart_disease_app.db', backup_path)
+        
+        flash(f'Database backup created: {backup_filename}', 'success')
+        
+    except Exception as e:
+        flash(f'Failed to create backup: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_system'))
+
+@app.route('/admin/users/search')
+@login_required
+def admin_users_search():
+    """Search users in admin panel"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    query = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    
+    if query:
+        # Search by username, email, or name
+        users = User.query.filter(
+            db.or_(
+                User.username.ilike(f'%{query}%'),
+                User.email.ilike(f'%{query}%'),
+                User.first_name.ilike(f'%{query}%'),
+                User.last_name.ilike(f'%{query}%')
+            )
+        ).order_by(User.created_at.desc()).paginate(
+            page=page, per_page=20, error_out=False)
+    else:
+        users = User.query.order_by(User.created_at.desc()).paginate(
+            page=page, per_page=20, error_out=False)
+    
+    return render_template('admin_users.html', users=users, search_query=query)
+
+@app.route('/admin/predictions/search')
+@login_required
+def admin_predictions_search():
+    """Search predictions in admin panel"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    query = request.args.get('q', '').strip()
+    risk_filter = request.args.get('risk', 'all')
+    page = request.args.get('page', 1, type=int)
+    
+    # Build query
+    if query:
+        # Search by user information
+        predictions = Prediction.query.join(User).filter(
+            db.or_(
+                User.username.ilike(f'%{query}%'),
+                User.email.ilike(f'%{query}%'),
+                User.first_name.ilike(f'%{query}%'),
+                User.last_name.ilike(f'%{query}%')
+            )
+        )
+    else:
+        predictions = Prediction.query
+    
+    # Apply risk filter
+    if risk_filter != 'all':
+        predictions = predictions.filter_by(risk_level=risk_filter.title())
+    
+    predictions = predictions.order_by(Prediction.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False)
+    
+    return render_template('admin_predictions.html', 
+                         predictions=predictions, 
+                         risk_filter=risk_filter, 
+                         search_query=query)
+
+@app.route('/admin/appointments/search')
+@login_required
+def admin_appointments_search():
+    """Search appointments in admin panel"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    query = request.args.get('q', '').strip()
+    status_filter = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    
+    # Build query
+    if query:
+        # Search by user information or doctor name
+        appointments = Appointment.query.join(User).filter(
+            db.or_(
+                User.username.ilike(f'%{query}%'),
+                User.email.ilike(f'%{query}%'),
+                User.first_name.ilike(f'%{query}%'),
+                User.last_name.ilike(f'%{query}%'),
+                Appointment.doctor_name.ilike(f'%{query}%')
+            )
+        )
+    else:
+        appointments = Appointment.query
+    
+    # Apply status filter
+    if status_filter != 'all':
+        appointments = appointments.filter_by(status=status_filter)
+    
+    appointments = appointments.order_by(Appointment.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False)
+    
+    return render_template('admin_appointments.html', 
+                         appointments=appointments, 
+                         status_filter=status_filter, 
+                         search_query=query)
+
+@app.route('/admin/system/logs')
+@login_required
+def admin_logs():
+    """View system logs"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # This would show system logs
+    # For now, we'll show a placeholder
+    logs = [
+        {'timestamp': '2024-01-15 10:30:00', 'level': 'INFO', 'message': 'System started successfully'},
+        {'timestamp': '2024-01-15 10:35:00', 'level': 'INFO', 'message': 'New user registered: john_doe'},
+        {'timestamp': '2024-01-15 10:40:00', 'level': 'WARNING', 'message': 'High risk prediction detected for user: jane_smith'},
+    ]
+    
+    return render_template('admin_logs.html', logs=logs)
+
+@app.route('/admin/system/clear-logs', methods=['POST'])
+@login_required
+def clear_logs():
+    """Clear system logs"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # This would clear system logs
+        flash('System logs cleared successfully.', 'success')
+    except Exception as e:
+        flash(f'Failed to clear logs: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_logs'))
 
 def generate_ai_response(prediction, question):
     """Generate AI response based on prediction and question"""

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}System Logs - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-file-alt text-primary"></i>
+                        System Logs
+                    </h2>
+                    <p class="text-muted mb-0">Monitor system activity and events</p>
+                </div>
+                <div class="d-flex align-items-center">
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Admin
+                    </a>
+                    <form method="POST" action="{{ url_for('clear_logs') }}" class="d-inline" 
+                          onsubmit="return confirm('Are you sure you want to clear all logs?')">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>
+                            Clear Logs
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <label class="form-label">Log Level</label>
+                            <select class="form-select" id="logLevel">
+                                <option value="all">All Levels</option>
+                                <option value="INFO">Info</option>
+                                <option value="WARNING">Warning</option>
+                                <option value="ERROR">Error</option>
+                                <option value="DEBUG">Debug</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" id="dateRange">
+                                <option value="today">Today</option>
+                                <option value="week">Last 7 Days</option>
+                                <option value="month">Last 30 Days</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Search</label>
+                            <input type="text" class="form-control" id="logSearch" placeholder="Search in logs...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary w-100" onclick="filterLogs()">
+                                <i class="fas fa-search me-2"></i>
+                                Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list text-primary me-2"></i>
+                            System Logs
+                        </h5>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">{{ logs|length }} entries</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="refreshLogs()">
+                                <i class="fas fa-sync-alt me-1"></i>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 180px;">Timestamp</th>
+                                    <th style="width: 100px;">Level</th>
+                                    <th>Message</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                {% for log in logs %}
+                                <tr class="log-entry" data-level="{{ log.level }}" data-timestamp="{{ log.timestamp }}">
+                                    <td>
+                                        <small class="text-muted">{{ log.timestamp }}</small>
+                                    </td>
+                                    <td>
+                                        {% if log.level == 'ERROR' %}
+                                            <span class="badge bg-danger">{{ log.level }}</span>
+                                        {% elif log.level == 'WARNING' %}
+                                            <span class="badge bg-warning text-dark">{{ log.level }}</span>
+                                        {% elif log.level == 'INFO' %}
+                                            <span class="badge bg-info">{{ log.level }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ log.level }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="log-message">{{ log.message }}</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="copyLogMessage('{{ log.message }}')"
+                                                title="Copy message">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Logs Message -->
+    {% if not logs %}
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5">
+                    <i class="fas fa-file-alt text-muted mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted">No logs found</h5>
+                    <p class="text-muted">System logs will appear here as the application runs.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterLogs() {
+    const level = document.getElementById('logLevel').value;
+    const dateRange = document.getElementById('dateRange').value;
+    const search = document.getElementById('logSearch').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('.log-entry');
+    
+    rows.forEach(row => {
+        const rowLevel = row.dataset.level;
+        const rowTimestamp = row.dataset.timestamp;
+        const message = row.querySelector('.log-message').textContent.toLowerCase();
+        
+        let show = true;
+        
+        // Filter by level
+        if (level !== 'all' && rowLevel !== level) {
+            show = false;
+        }
+        
+        // Filter by search
+        if (search && !message.includes(search)) {
+            show = false;
+        }
+        
+        // Filter by date range (simplified)
+        if (dateRange !== 'all') {
+            const logDate = new Date(rowTimestamp);
+            const now = new Date();
+            const diffDays = (now - logDate) / (1000 * 60 * 60 * 24);
+            
+            if (dateRange === 'today' && diffDays > 1) {
+                show = false;
+            } else if (dateRange === 'week' && diffDays > 7) {
+                show = false;
+            } else if (dateRange === 'month' && diffDays > 30) {
+                show = false;
+            }
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+    
+    // Update count
+    const visibleRows = document.querySelectorAll('.log-entry:not([style*="display: none"])');
+    const countBadge = document.querySelector('.badge.bg-primary');
+    if (countBadge) {
+        countBadge.textContent = `${visibleRows.length} entries`;
+    }
+}
+
+function refreshLogs() {
+    location.reload();
+}
+
+function copyLogMessage(message) {
+    navigator.clipboard.writeText(message).then(() => {
+        // Show a temporary success message
+        const button = event.target.closest('button');
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalIcon;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-primary');
+        }, 1000);
+    });
+}
+
+// Auto-refresh logs every 30 seconds
+setInterval(refreshLogs, 30000);
+
+// Initialize filters
+document.addEventListener('DOMContentLoaded', function() {
+    filterLogs();
+});
+</script>
+{% endblock %} 
