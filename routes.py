@@ -467,6 +467,7 @@ def ai_assistant(prediction_id):
 @app.route('/admin')
 @login_required
 def admin():
+    print("DEBUG: Admin route accessed!")
     """Admin dashboard"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
