@@ -116,13 +116,13 @@ HeartGuardian is a comprehensive web application that combines machine learning-
 
 ### Prerequisites
 - Python 3.8 or higher
-- pip or uv package manager
+- pip package manager
 - Git
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/yourusername/heartguardian.git
-cd heartguardian
+git clone https://github.com/MubeenArshad08/Heart_disease_predication.git
+cd Heart_disease_predication
 ```
 
 ### Step 2: Set Up Virtual Environment
@@ -138,27 +138,32 @@ source .venv/bin/activate
 
 ### Step 3: Install Dependencies
 ```bash
-# Using pip
+# Install all required packages from requirements.txt
 pip install -r requirements.txt
 
 # Or using uv
 uv pip install -r requirements.txt
 ```
 
+**Note:** The `requirements.txt` file includes all necessary dependencies:
+- Flask and Flask extensions
+- Machine learning libraries (scikit-learn, numpy, pandas)
+- Database libraries (SQLAlchemy)
+- Authentication libraries (Flask-Login)
+- And other required packages
+
 ### Step 4: Set Up Environment Variables
 ```bash
-# Create .env file
-cp .env.example .env
-
-# Edit .env with your configuration
-SECRET_KEY=your-secret-key-here
-FLASK_ENV=development
-DATABASE_URL=sqlite:///heart_disease_app.db
+# Create .env file (optional for development)
+echo "SECRET_KEY=your-secret-key-here" > .env
+echo "FLASK_ENV=development" >> .env
+echo "DATABASE_URL=sqlite:///heart_disease_app.db" >> .env
 ```
 
-### Step 5: Initialize Database
+### Step 5: Initialize Database (Optional)
 ```bash
-# Run database migration
+# The database is already included in the repository
+# If you need to recreate it, run:
 python migrate_db.py
 
 # Or initialize manually
@@ -171,12 +176,22 @@ python -c "from app import app, db; app.app_context().push(); db.create_all()"
 python main.py
 
 # Or using Flask CLI
-export FLASK_APP=app.py
-export FLASK_ENV=development
+set FLASK_APP=app.py  # On Windows
+set FLASK_ENV=development  # On Windows
 flask run
 ```
 
 The application will be available at `http://localhost:5000`
+
+### Quick Start (All-in-one)
+```bash
+git clone https://github.com/MubeenArshad08/Heart_disease_predication.git
+cd Heart_disease_predication
+python -m venv venv
+venv\Scripts\activate  # On Windows
+pip install -r requirements.txt
+python main.py
+```
 
 ## 📖 Usage
 
