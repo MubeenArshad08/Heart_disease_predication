@@ -58,11 +58,9 @@ coverage.xml
 # Django stuff:
 *.log
 local_settings.py
-db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
 .webassets-cache
 
 # Scrapy stuff:
@@ -128,11 +126,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
 # IDE files
 .vscode/
 .idea/
@@ -149,16 +142,9 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
-
 # Temporary files
 *.tmp
 *.temp
-
-# Model files (if they're large)
-*.pkl
-*.joblib
 
 # Configuration files with sensitive data
 config.py
