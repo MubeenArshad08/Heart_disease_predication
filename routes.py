@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import logging
 
 from app import app, db
-from models import User, HealthData, Prediction, Appointment, AIConsultation
+from models import User, HealthData, Prediction, Appointment, AIConsultation, Notification
 from forms import LoginForm, RegisterForm, PredictionForm, AppointmentForm
 from ml_model import HeartDiseasePredictor
 
@@ -100,16 +100,24 @@ def logout():
 @login_required
 def dashboard():
     """User dashboard"""
-    # Get user's recent predictions
+    # Get recent predictions
     recent_predictions = Prediction.query.filter_by(user_id=current_user.id)\
-                                       .order_by(Prediction.created_at.desc())\
-                                       .limit(5).all()
+                                       .order_by(Prediction.created_at.desc()).limit(5).all()
     
-    # Get user's upcoming appointments
-    upcoming_appointments = Appointment.query.filter_by(user_id=current_user.id)\
-                                           .filter(Appointment.appointment_date >= datetime.utcnow())\
-                                           .order_by(Appointment.appointment_date)\
-                                           .limit(3).all()
+    # Get upcoming appointments (confirmed and pending)
+    upcoming_appointments = Appointment.query.filter(
+        Appointment.user_id == current_user.id,
+        Appointment.status.in_(['pending', 'confirmed']),
+        Appointment.appointment_date >= datetime.now().date()
+    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
+    
+    # Get recent appointments (all statuses)
+    recent_appointments = Appointment.query.filter_by(user_id=current_user.id)\
+                                         .order_by(Appointment.created_at.desc()).limit(10).all()
+    
+    # Get unread notifications
+    unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False)\
+                                            .order_by(Notification.created_at.desc()).limit(5).all()
     
     # Statistics
     total_predictions = Prediction.query.filter_by(user_id=current_user.id).count()
@@ -118,8 +126,36 @@ def dashboard():
     return render_template('dashboard.html', 
                          recent_predictions=recent_predictions,
                          upcoming_appointments=upcoming_appointments,
+                         recent_appointments=recent_appointments,
+                         unread_notifications=unread_notifications,
                          total_predictions=total_predictions,
                          high_risk_predictions=high_risk_predictions)
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    """User notifications page"""
+    # Get all notifications for user
+    notifications = Notification.query.filter_by(user_id=current_user.id)\
+                                    .order_by(Notification.created_at.desc()).all()
+    
+    return render_template('notifications.html', notifications=notifications)
+
+@app.route('/notifications/mark-read/<int:notification_id>', methods=['POST'])
+@login_required
+def mark_notification_read(notification_id):
+    """Mark a notification as read"""
+    notification = Notification.query.filter_by(id=notification_id, user_id=current_user.id).first_or_404()
+    
+    try:
+        notification.is_read = True
+        db.session.commit()
+        flash('Notification marked as read.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Failed to mark notification as read.', 'danger')
+    
+    return redirect(url_for('notifications'))
 
 @app.route('/predict', methods=['GET', 'POST'])
 @login_required
@@ -206,13 +242,14 @@ def book_appointment(prediction_id):
                 doctor_name=form.doctor_name.data,
                 appointment_date=form.appointment_date.data,
                 appointment_time=form.appointment_time.data,
-                reason=form.reason.data
+                reason=form.reason.data,
+                status='pending'  # Start with pending status
             )
             
             db.session.add(appointment)
             db.session.commit()
             
-            flash('Appointment booked successfully!', 'success')
+            flash('Appointment request submitted successfully! The doctor will review and confirm your appointment.', 'success')
             return redirect(url_for('dashboard'))
             
         except Exception as e:
@@ -221,6 +258,179 @@ def book_appointment(prediction_id):
             flash('Failed to book appointment. Please try again.', 'danger')
     
     return render_template('book_appointment.html', form=form, prediction=prediction)
+
+@app.route('/doctor/appointments')
+@login_required
+def doctor_appointments():
+    """Doctor's appointment management dashboard"""
+    if not current_user.is_admin:
+        flash('Access denied. Doctor privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all pending appointments
+    pending_appointments = Appointment.query.filter_by(status='pending').order_by(Appointment.created_at.desc()).all()
+    
+    # Get confirmed appointments for today and upcoming
+    today = datetime.now().date()
+    confirmed_appointments = Appointment.query.filter(
+        Appointment.status == 'confirmed',
+        Appointment.appointment_date >= today
+    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
+    
+    # Get recent completed appointments
+    completed_appointments = Appointment.query.filter_by(status='completed').order_by(Appointment.confirmation_date.desc()).limit(10).all()
+    
+    return render_template('doctor_appointments.html',
+                         pending_appointments=pending_appointments,
+                         confirmed_appointments=confirmed_appointments,
+                         completed_appointments=completed_appointments)
+
+@app.route('/doctor/appointment/<int:appointment_id>/confirm', methods=['POST'])
+@login_required
+def confirm_appointment(appointment_id):
+    """Doctor confirms an appointment"""
+    if not current_user.is_admin:
+        flash('Access denied. Doctor privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    if appointment.status != 'pending':
+        flash('This appointment has already been processed.', 'warning')
+        return redirect(url_for('doctor_appointments'))
+    
+    try:
+        appointment.status = 'confirmed'
+        appointment.confirmation_date = datetime.utcnow()
+        appointment.confirmed_by = current_user.first_name + ' ' + current_user.last_name
+        
+        db.session.commit()
+        
+        # Send confirmation email (placeholder for now)
+        send_appointment_confirmation_email(appointment)
+        
+        # Create notification for user
+        notification = Notification(
+            user_id=appointment.user_id,
+            appointment_id=appointment.id,
+            title="Appointment Confirmed",
+            message=f"Your appointment with {appointment.doctor_name} on {appointment.appointment_date.strftime('%B %d, %Y')} at {appointment.appointment_time} has been confirmed.",
+            type="appointment_confirmed"
+        )
+        db.session.add(notification)
+        
+        flash(f'Appointment with {appointment.user.first_name} {appointment.user.last_name} has been confirmed.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Appointment confirmation error: {e}")
+        flash('Failed to confirm appointment. Please try again.', 'danger')
+    
+    return redirect(url_for('doctor_appointments'))
+
+@app.route('/doctor/appointment/<int:appointment_id>/reject', methods=['POST'])
+@login_required
+def reject_appointment(appointment_id):
+    """Doctor rejects an appointment"""
+    if not current_user.is_admin:
+        flash('Access denied. Doctor privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    if appointment.status != 'pending':
+        flash('This appointment has already been processed.', 'warning')
+        return redirect(url_for('doctor_appointments'))
+    
+    rejection_reason = request.form.get('rejection_reason', '').strip()
+    
+    if not rejection_reason:
+        flash('Please provide a reason for rejection.', 'warning')
+        return redirect(url_for('doctor_appointments'))
+    
+    try:
+        appointment.status = 'rejected'
+        appointment.doctor_notes = rejection_reason
+        appointment.confirmation_date = datetime.utcnow()
+        appointment.confirmed_by = current_user.first_name + ' ' + current_user.last_name
+        
+        db.session.commit()
+        
+        # Send rejection email (placeholder for now)
+        send_appointment_rejection_email(appointment)
+        
+        # Create notification for user
+        notification = Notification(
+            user_id=appointment.user_id,
+            appointment_id=appointment.id,
+            title="Appointment Rejected",
+            message=f"Your appointment with {appointment.doctor_name} has been rejected. Reason: {rejection_reason}",
+            type="appointment_rejected"
+        )
+        db.session.add(notification)
+        
+        flash(f'Appointment with {appointment.user.first_name} {appointment.user.last_name} has been rejected.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Appointment rejection error: {e}")
+        flash('Failed to reject appointment. Please try again.', 'danger')
+    
+    return redirect(url_for('doctor_appointments'))
+
+@app.route('/doctor/appointment/<int:appointment_id>/complete', methods=['POST'])
+@login_required
+def complete_appointment(appointment_id):
+    """Doctor marks appointment as completed"""
+    if not current_user.is_admin:
+        flash('Access denied. Doctor privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    if appointment.status != 'confirmed':
+        flash('Only confirmed appointments can be marked as completed.', 'warning')
+        return redirect(url_for('doctor_appointments'))
+    
+    try:
+        appointment.status = 'completed'
+        appointment.confirmation_date = datetime.utcnow()
+        
+        db.session.commit()
+        
+        flash(f'Appointment with {appointment.user.first_name} {appointment.user.last_name} has been marked as completed.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Appointment completion error: {e}")
+        flash('Failed to complete appointment. Please try again.', 'danger')
+    
+    return redirect(url_for('doctor_appointments'))
+
+@app.route('/appointment/<int:appointment_id>/cancel', methods=['POST'])
+@login_required
+def cancel_appointment(appointment_id):
+    """User cancels their own appointment"""
+    appointment = Appointment.query.filter_by(id=appointment_id, user_id=current_user.id).first_or_404()
+    
+    if appointment.status not in ['pending', 'confirmed']:
+        flash('This appointment cannot be cancelled.', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        appointment.status = 'cancelled'
+        appointment.confirmation_date = datetime.utcnow()
+        
+        db.session.commit()
+        
+        flash('Your appointment has been cancelled successfully.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Appointment cancellation error: {e}")
+        flash('Failed to cancel appointment. Please try again.', 'danger')
+    
+    return redirect(url_for('dashboard'))
 
 @app.route('/ai_assistant/<int:prediction_id>', methods=['GET', 'POST'])
 @login_required
@@ -265,19 +475,245 @@ def admin():
     total_users = User.query.count()
     total_predictions = Prediction.query.count()
     high_risk_patients = Prediction.query.filter_by(risk_level='High').count()
+    medium_risk_patients = Prediction.query.filter_by(risk_level='Medium').count()
+    low_risk_patients = Prediction.query.filter_by(risk_level='Low').count()
     total_appointments = Appointment.query.count()
+    pending_appointments = Appointment.query.filter_by(status='pending').count()
+    confirmed_appointments = Appointment.query.filter_by(status='confirmed').count()
     
     # Recent activity
     recent_predictions = Prediction.query.order_by(Prediction.created_at.desc()).limit(10).all()
     recent_registrations = User.query.order_by(User.created_at.desc()).limit(10).all()
+    recent_appointments = Appointment.query.order_by(Appointment.created_at.desc()).limit(10).all()
     
     return render_template('admin.html',
                          total_users=total_users,
                          total_predictions=total_predictions,
                          high_risk_patients=high_risk_patients,
+                         medium_risk_patients=medium_risk_patients,
+                         low_risk_patients=low_risk_patients,
                          total_appointments=total_appointments,
+                         pending_appointments=pending_appointments,
+                         confirmed_appointments=confirmed_appointments,
                          recent_predictions=recent_predictions,
-                         recent_registrations=recent_registrations)
+                         recent_registrations=recent_registrations,
+                         recent_appointments=recent_appointments)
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    """Admin user management"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all users with pagination
+    page = request.args.get('page', 1, type=int)
+    users = User.query.order_by(User.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False)
+    
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/user/<int:user_id>/toggle-admin', methods=['POST'])
+@login_required
+def toggle_admin_status(user_id):
+    """Toggle admin status for a user"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if user_id == current_user.id:
+        flash('You cannot modify your own admin status.', 'warning')
+        return redirect(url_for('admin_users'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        user.is_admin = not user.is_admin
+        db.session.commit()
+        
+        status = "granted" if user.is_admin else "revoked"
+        flash(f'Admin privileges {status} for {user.first_name} {user.last_name}.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Failed to update admin status.', 'danger')
+    
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    """Delete a user"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if user_id == current_user.id:
+        flash('You cannot delete your own account.', 'warning')
+        return redirect(url_for('admin_users'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        # Delete user and all associated data (cascade)
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'User {user.first_name} {user.last_name} has been deleted.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Failed to delete user.', 'danger')
+    
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/predictions')
+@login_required
+def admin_predictions():
+    """Admin predictions management"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all predictions with pagination
+    page = request.args.get('page', 1, type=int)
+    risk_filter = request.args.get('risk', 'all')
+    
+    query = Prediction.query
+    
+    if risk_filter != 'all':
+        query = query.filter_by(risk_level=risk_filter.title())
+    
+    predictions = query.order_by(Prediction.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False)
+    
+    return render_template('admin_predictions.html', predictions=predictions, risk_filter=risk_filter)
+
+@app.route('/admin/prediction/<int:prediction_id>/delete', methods=['POST'])
+@login_required
+def delete_prediction(prediction_id):
+    """Delete a prediction"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    prediction = Prediction.query.get_or_404(prediction_id)
+    
+    try:
+        db.session.delete(prediction)
+        db.session.commit()
+        flash('Prediction has been deleted.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Failed to delete prediction.', 'danger')
+    
+    return redirect(url_for('admin_predictions'))
+
+@app.route('/admin/appointments')
+@login_required
+def admin_appointments():
+    """Admin appointments management"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get all appointments with pagination
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', 'all')
+    
+    query = Appointment.query
+    
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    appointments = query.order_by(Appointment.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False)
+    
+    return render_template('admin_appointments.html', appointments=appointments, status_filter=status_filter)
+
+@app.route('/admin/appointment/<int:appointment_id>/delete', methods=['POST'])
+@login_required
+def delete_appointment(appointment_id):
+    """Delete an appointment"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    try:
+        db.session.delete(appointment)
+        db.session.commit()
+        flash('Appointment has been deleted.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Failed to delete appointment.', 'danger')
+    
+    return redirect(url_for('admin_appointments'))
+
+@app.route('/admin/system')
+@login_required
+def admin_system():
+    """Admin system settings and maintenance"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get system statistics
+    total_users = User.query.count()
+    total_predictions = Prediction.query.count()
+    total_appointments = Appointment.query.count()
+    total_notifications = Notification.query.count()
+    
+    # Get database info
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+    
+    return render_template('admin_system.html',
+                         total_users=total_users,
+                         total_predictions=total_predictions,
+                         total_appointments=total_appointments,
+                         total_notifications=total_notifications,
+                         tables=tables)
+
+@app.route('/admin/system/clear-notifications', methods=['POST'])
+@login_required
+def clear_notifications():
+    """Clear all notifications"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        Notification.query.delete()
+        db.session.commit()
+        flash('All notifications have been cleared.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Failed to clear notifications.', 'danger')
+    
+    return redirect(url_for('admin_system'))
+
+@app.route('/admin/system/export-data', methods=['POST'])
+@login_required
+def export_data():
+    """Export system data"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # This would implement data export functionality
+        flash('Data export functionality would be implemented here.', 'info')
+        
+    except Exception as e:
+        flash('Failed to export data.', 'danger')
+    
+    return redirect(url_for('admin_system'))
 
 def generate_ai_response(prediction, question):
     """Generate AI response based on prediction and question"""
@@ -302,6 +738,20 @@ def generate_ai_response(prediction, question):
             return "Continue your healthy lifestyle! Regular exercise, balanced diet, stress management, adequate sleep, and avoiding smoking are key to preventing heart disease."
         else:
             return "Your assessment shows lower heart disease risk, which is great! Continue maintaining a healthy lifestyle with regular exercise, balanced nutrition, and routine medical check-ups."
+
+def send_appointment_confirmation_email(appointment):
+    """Send confirmation email to patient (placeholder)"""
+    # In a real implementation, this would send an email
+    # For now, we'll just log the action
+    logging.info(f"Appointment confirmation email would be sent to {appointment.user.email}")
+    logging.info(f"Appointment details: {appointment.doctor_name} on {appointment.appointment_date} at {appointment.appointment_time}")
+
+def send_appointment_rejection_email(appointment):
+    """Send rejection email to patient (placeholder)"""
+    # In a real implementation, this would send an email
+    # For now, we'll just log the action
+    logging.info(f"Appointment rejection email would be sent to {appointment.user.email}")
+    logging.info(f"Rejection reason: {appointment.doctor_notes}")
 
 @app.errorhandler(404)
 def not_found_error(error):

@@ -11,15 +11,63 @@
                 <div>
                     <h2 class="mb-1">
                         <i class="fas fa-cog text-primary"></i>
-                        Admin Dashboard
+                        Admin Control Panel
                     </h2>
-                    <p class="text-muted mb-0">System overview and patient statistics</p>
+                    <p class="text-muted mb-0">Complete system management and oversight</p>
                 </div>
-                <div>
-                    <span class="badge bg-success">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-3">
                         <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
                         System Online
                     </span>
+                    <a href="{{ url_for('doctor_appointments') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-user-md me-2"></i>
+                        Manage Appointments
+                    </a>
+                    <a href="{{ url_for('admin_system') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-cogs me-2"></i>
+                        System Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-users mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-bold">User Management</span>
+                                <small class="text-muted">{{ total_users }} users</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_predictions') }}" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-chart-line mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-bold">Predictions</span>
+                                <small class="text-muted">{{ total_predictions }} assessments</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_appointments') }}" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-calendar-check mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-bold">Appointments</span>
+                                <small class="text-muted">{{ total_appointments }} total</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_system') }}" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center p-3">
+                                <i class="fas fa-cogs mb-2" style="font-size: 2rem;"></i>
+                                <span class="fw-bold">System</span>
+                                <small class="text-muted">Settings & Maintenance</small>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -34,6 +82,7 @@
                         <div class="flex-grow-1">
                             <h6 class="text-muted mb-1">Total Users</h6>
                             <h3 class="mb-0 text-primary">{{ total_users }}</h3>
+                            <small class="text-muted">Registered patients</small>
                         </div>
                         <div class="ms-3">
                             <i class="fas fa-users text-primary" style="font-size: 2rem;"></i>
@@ -50,6 +99,7 @@
                         <div class="flex-grow-1">
                             <h6 class="text-muted mb-1">Total Assessments</h6>
                             <h3 class="mb-0 text-success">{{ total_predictions }}</h3>
+                            <small class="text-muted">Heart health evaluations</small>
                         </div>
                         <div class="ms-3">
                             <i class="fas fa-stethoscope text-success" style="font-size: 2rem;"></i>
@@ -66,13 +116,7 @@
                         <div class="flex-grow-1">
                             <h6 class="text-muted mb-1">High Risk Patients</h6>
                             <h3 class="mb-0 text-danger">{{ high_risk_patients }}</h3>
-                            <small class="text-muted">
-                                {% if total_predictions > 0 %}
-                                    {{ "%.1f"|format((high_risk_patients / total_predictions) * 100) }}% of total
-                                {% else %}
-                                    0% of total
-                                {% endif %}
-                            </small>
+                            <small class="text-muted">{{ "%.1f"|format((high_risk_patients / total_predictions * 100) if total_predictions > 0 else 0) }}% of total</small>
                         </div>
                         <div class="ms-3">
                             <i class="fas fa-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
@@ -87,11 +131,12 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <h6 class="text-muted mb-1">Total Appointments</h6>
-                            <h3 class="mb-0 text-info">{{ total_appointments }}</h3>
+                            <h6 class="text-muted mb-1">Pending Appointments</h6>
+                            <h3 class="mb-0 text-warning">{{ pending_appointments }}</h3>
+                            <small class="text-muted">Awaiting confirmation</small>
                         </div>
                         <div class="ms-3">
-                            <i class="fas fa-calendar-check text-info" style="font-size: 2rem;"></i>
+                            <i class="fas fa-clock text-warning" style="font-size: 2rem;"></i>
                         </div>
                     </div>
                 </div>
@@ -99,172 +144,9 @@
         </div>
     </div>
 
-    <div class="row">
-        <!-- Recent Assessments -->
-        <div class="col-lg-8 mb-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-chart-line text-primary me-2"></i>
-                            Recent Assessments
-                        </h5>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary active" data-filter="all">All</button>
-                            <button class="btn btn-outline-danger" data-filter="high">High Risk</button>
-                            <button class="btn btn-outline-warning" data-filter="medium">Medium Risk</button>
-                            <button class="btn btn-outline-success" data-filter="low">Low Risk</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card-body p-0">
-                    {% if recent_predictions %}
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Patient</th>
-                                        <th>Age</th>
-                                        <th>Risk Level</th>
-                                        <th>Confidence</th>
-                                        <th>Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for prediction in recent_predictions %}
-                                    <tr data-risk="{{ prediction.risk_level.lower() }}">
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                                    {{ prediction.user.first_name[0] }}{{ prediction.user.last_name[0] }}
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold">{{ prediction.user.first_name }} {{ prediction.user.last_name }}</div>
-                                                    <small class="text-muted">{{ prediction.user.email }}</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>{{ prediction.health_data.age }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ 'danger' if prediction.risk_level == 'High' else ('warning' if prediction.risk_level == 'Medium' else 'success') }}">
-                                                {{ prediction.risk_level }}
-                                            </span>
-                                        </td>
-                                        <td>{{ "%.1f"|format(prediction.confidence_score * 100) }}%</td>
-                                        <td>{{ prediction.created_at.strftime('%m/%d/%Y %H:%M') }}</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#predictionModal" 
-                                                        data-prediction-id="{{ prediction.id }}">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                {% if prediction.risk_level == 'High' %}
-                                                <span class="badge bg-danger ms-1">
-                                                    <i class="fas fa-exclamation-triangle"></i>
-                                                </span>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-chart-line text-muted" style="font-size: 3rem;"></i>
-                            <h5 class="mt-3 text-muted">No assessments yet</h5>
-                            <p class="text-muted">Assessment data will appear here once users start using the system.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- System Stats & Recent Users -->
-        <div class="col-lg-4">
-            <!-- System Health -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom">
-                    <h6 class="mb-0">
-                        <i class="fas fa-server text-success me-2"></i>
-                        System Health
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted">ML Model Status</span>
-                            <span class="badge bg-success">Active</span>
-                        </div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-success" style="width: 100%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted">Database</span>
-                            <span class="badge bg-success">Connected</span>
-                        </div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-success" style="width: 100%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted">Prediction Accuracy</span>
-                            <span class="badge bg-info">~85%</span>
-                        </div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-info" style="width: 85%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Registrations -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h6 class="mb-0">
-                        <i class="fas fa-user-plus text-primary me-2"></i>
-                        Recent Registrations
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if recent_registrations %}
-                        {% for user in recent_registrations %}
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                {{ user.first_name[0] }}{{ user.last_name[0] }}
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="fw-bold">{{ user.first_name }} {{ user.last_name }}</div>
-                                <small class="text-muted">{{ user.email }}</small>
-                                <div class="small text-muted">
-                                    <i class="fas fa-clock me-1"></i>
-                                    {{ user.created_at.strftime('%m/%d/%Y') }}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-3">
-                            <i class="fas fa-user-plus text-muted" style="font-size: 2rem;"></i>
-                            <p class="mt-2 text-muted">No recent registrations</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Risk Distribution Chart -->
-    <div class="row mt-4">
-        <div class="col-12">
+    <!-- Risk Distribution -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom">
                     <h5 class="mb-0">
@@ -273,45 +155,136 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <canvas id="riskChart" width="400" height="200"></canvas>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>High Risk</span>
+                            <span class="fw-bold text-danger">{{ high_risk_patients }}</span>
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-danger" style="width: {{ (high_risk_patients / total_predictions * 100) if total_predictions > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Medium Risk</span>
+                            <span class="fw-bold text-warning">{{ medium_risk_patients }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" style="width: {{ (medium_risk_patients / total_predictions * 100) if total_predictions > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Low Risk</span>
+                            <span class="fw-bold text-success">{{ low_risk_patients }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ (low_risk_patients / total_predictions * 100) if total_predictions > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-activity text-primary me-2"></i>
+                        Recent Activity
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Latest Assessments</h6>
+                            {% if recent_predictions %}
+                                {% for prediction in recent_predictions[:5] %}
                                 <div class="d-flex align-items-center mb-2">
-                                    <div class="bg-danger rounded" style="width: 16px; height: 16px; margin-right: 8px;"></div>
-                                    <span>High Risk: {{ high_risk_patients }} patients</span>
+                                    <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                        {{ prediction.user.first_name[0] }}{{ prediction.user.last_name[0] }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="small">{{ prediction.user.first_name }} {{ prediction.user.last_name }}</div>
+                                        <div class="small text-muted">{{ prediction.created_at.strftime('%m/%d %H:%M') }}</div>
+                                    </div>
+                                    <span class="badge bg-{{ 'danger' if prediction.risk_level == 'High' else ('warning' if prediction.risk_level == 'Medium' else 'success') }}">
+                                        {{ prediction.risk_level }}
+                                    </span>
                                 </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">No recent assessments</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Latest Appointments</h6>
+                            {% if recent_appointments %}
+                                {% for appointment in recent_appointments[:5] %}
                                 <div class="d-flex align-items-center mb-2">
-                                    <div class="bg-warning rounded" style="width: 16px; height: 16px; margin-right: 8px;"></div>
-                                    <span>Medium Risk: {{ medium_risk_count|default(0) }} patients</span>
+                                    <div class="avatar bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                        {{ appointment.user.first_name[0] }}{{ appointment.user.last_name[0] }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="small">{{ appointment.doctor_name }}</div>
+                                        <div class="small text-muted">{{ appointment.created_at.strftime('%m/%d %H:%M') }}</div>
+                                    </div>
+                                    <span class="badge bg-{{ appointment.status_badge_color }}">
+                                        {{ appointment.status.title() }}
+                                    </span>
                                 </div>
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-success rounded" style="width: 16px; height: 16px; margin-right: 8px;"></div>
-                                    <span>Low Risk: {{ low_risk_count|default(0) }} patients</span>
-                                </div>
-                            </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">No recent appointments</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Prediction Details Modal -->
-<div class="modal fade" id="predictionModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Assessment Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="predictionModalBody">
-                <div class="text-center py-3">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                    <p class="mt-2">Loading assessment details...</p>
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt text-warning me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('doctor_appointments') }}" class="btn btn-success w-100">
+                                <i class="fas fa-user-md me-2"></i>
+                                Review Appointments
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-users me-2"></i>
+                                Manage Users
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_system') }}" class="btn btn-warning w-100">
+                                <i class="fas fa-cogs me-2"></i>
+                                System Settings
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_predictions') }}" class="btn btn-info w-100">
+                                <i class="fas fa-chart-line me-2"></i>
+                                View Predictions
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -323,102 +296,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 $(document).ready(function() {
-    // Risk level filtering
-    $('[data-filter]').on('click', function() {
-        const filter = $(this).data('filter');
-        $('[data-filter]').removeClass('active');
-        $(this).addClass('active');
-        
-        if (filter === 'all') {
-            $('tbody tr').show();
-        } else {
-            $('tbody tr').hide();
-            $(`tbody tr[data-risk="${filter}"]`).show();
-        }
-    });
-    
-    // Initialize risk distribution chart
-    const ctx = document.getElementById('riskChart').getContext('2d');
-    
-    // Calculate risk distribution
-    const highRisk = {{ high_risk_patients }};
-    const totalPredictions = {{ total_predictions }};
-    const mediumRisk = Math.floor(totalPredictions * 0.3); // Estimate
-    const lowRisk = totalPredictions - highRisk - mediumRisk;
-    
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['High Risk', 'Medium Risk', 'Low Risk'],
-            datasets: [{
-                data: [highRisk, mediumRisk, lowRisk],
-                backgroundColor: [
-                    '#dc3545', // danger
-                    '#ffc107', // warning
-                    '#198754'  // success
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-    
-    // Handle prediction modal
-    $('#predictionModal').on('show.bs.modal', function(event) {
-        const button = $(event.relatedTarget);
-        const predictionId = button.data('prediction-id');
-        
-        // Reset modal content
-        $('#predictionModalBody').html(`
-            <div class="text-center py-3">
-                <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                <p class="mt-2">Loading assessment details...</p>
-            </div>
-        `);
-        
-        // Simulate loading prediction details
-        setTimeout(() => {
-            $('#predictionModalBody').html(`
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Detailed prediction analysis would be displayed here in a full implementation.
-                    This would include complete health data, risk factors, and recommendations.
-                </div>
-                <div class="text-center">
-                    <button class="btn btn-primary" data-bs-dismiss="modal">Close</button>
-                </div>
-            `);
-        }, 1000);
-    });
-    
     // Auto-refresh statistics every 30 seconds
     setInterval(() => {
         // In a real implementation, you would fetch updated statistics here
-        console.log('Auto-refreshing statistics...');
+        console.log('Auto-refreshing admin statistics...');
     }, 30000);
 });
-
-// Export functions for admin actions
-function exportData() {
-    alert('Data export functionality would be implemented here.');
-}
-
-function generateReport() {
-    alert('Report generation functionality would be implemented here.');
-}
-
-function systemMaintenance() {
-    if (confirm('Are you sure you want to put the system in maintenance mode?')) {
-        alert('System maintenance mode would be activated here.');
-    }
-}
 </script>
 {% endblock %}

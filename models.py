@@ -79,7 +79,10 @@ class Appointment(db.Model):
     appointment_date = db.Column(db.DateTime, nullable=False)
     appointment_time = db.Column(db.String(10), nullable=False)
     reason = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default='scheduled')  # scheduled, completed, cancelled
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, rejected, completed, cancelled
+    doctor_notes = db.Column(db.Text)  # Doctor's notes or rejection reason
+    confirmation_date = db.Column(db.DateTime)  # When doctor confirmed/rejected
+    confirmed_by = db.Column(db.String(100))  # Doctor who confirmed
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -88,6 +91,48 @@ class Appointment(db.Model):
     
     def __repr__(self):
         return f'<Appointment {self.id} with Dr. {self.doctor_name}>'
+    
+    @property
+    def is_confirmed(self):
+        return self.status == 'confirmed'
+    
+    @property
+    def is_pending(self):
+        return self.status == 'pending'
+    
+    @property
+    def is_rejected(self):
+        return self.status == 'rejected'
+    
+    @property
+    def status_badge_color(self):
+        status_colors = {
+            'pending': 'warning',
+            'confirmed': 'success',
+            'rejected': 'danger',
+            'completed': 'info',
+            'cancelled': 'secondary'
+        }
+        return status_colors.get(self.status, 'secondary')
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # appointment_confirmed, appointment_rejected, etc.
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='notifications')
+    appointment = db.relationship('Appointment', backref='notifications')
+    
+    def __repr__(self):
+        return f'<Notification {self.id} for User {self.user_id}>'
 
 class AIConsultation(db.Model):
     __tablename__ = 'ai_consultations'

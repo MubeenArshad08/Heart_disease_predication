@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, IntegerField, FloatField, SelectField, TextAreaField, DateTimeField, DateField, TimeField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, ValidationError
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, ValidationError, InputRequired
 from datetime import datetime, date, time
 
 class LoginForm(FlaskForm):
@@ -45,7 +45,7 @@ class PredictionForm(FlaskForm):
                                  (1, 'ST-T Wave Abnormality'),
                                  (2, 'Left Ventricular Hypertrophy')
                              ],
-                             coerce=int, validators=[DataRequired()])
+                             coerce=int, validators=[InputRequired()], default=0)
     
     max_hr = IntegerField('Maximum Heart Rate Achieved', 
                          validators=[DataRequired(), NumberRange(min=60, max=250)])
@@ -53,7 +53,7 @@ class PredictionForm(FlaskForm):
     exercise_angina = BooleanField('Exercise Induced Angina')
     
     oldpeak = FloatField('ST Depression (Exercise vs Rest)', 
-                        validators=[DataRequired(), NumberRange(min=0, max=10)])
+                        validators=[InputRequired(), NumberRange(min=0, max=10)])
     
     st_slope = SelectField('ST Segment Slope',
                           choices=[
@@ -61,7 +61,17 @@ class PredictionForm(FlaskForm):
                               (1, 'Flat'),
                               (2, 'Downsloping')
                           ],
-                          coerce=int, validators=[DataRequired()])
+                          coerce=int, validators=[InputRequired()], default=0)
+
+    def validate_oldpeak(self, field):
+        if field.data is None or field.data == '':
+            raise ValidationError('This field is required.')
+        try:
+            value = float(field.data)
+        except (TypeError, ValueError):
+            raise ValidationError('Invalid number.')
+        if not (0.0 <= value <= 10.0):
+            raise ValidationError('ST depression value must be between 0.0 and 10.0.')
 
 class AppointmentForm(FlaskForm):
     doctor_name = SelectField('Doctor', 

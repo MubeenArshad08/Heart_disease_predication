@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-cogs text-warning"></i>
+                        System Settings & Maintenance
+                    </h2>
+                    <p class="text-muted mb-0">System administration and maintenance tools</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Admin
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-users text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                    <h3 class="text-primary">{{ total_users }}</h3>
+                    <p class="text-muted mb-0">Total Users</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-chart-line text-success" style="font-size: 2rem;"></i>
+                    </div>
+                    <h3 class="text-success">{{ total_predictions }}</h3>
+                    <p class="text-muted mb-0">Total Predictions</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-calendar-check text-info" style="font-size: 2rem;"></i>
+                    </div>
+                    <h3 class="text-info">{{ total_appointments }}</h3>
+                    <p class="text-muted mb-0">Total Appointments</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-bell text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                    <h3 class="text-warning">{{ total_notifications }}</h3>
+                    <p class="text-muted mb-0">Total Notifications</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- System Health -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-server text-success me-2"></i>
+                        System Health
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">ML Model Status</span>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">Database Connection</span>
+                            <span class="badge bg-success">Connected</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">Prediction Accuracy</span>
+                            <span class="badge bg-info">~85%</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-info" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">System Uptime</span>
+                            <span class="badge bg-success">Online</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-database text-info me-2"></i>
+                        Database Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Database Tables</h6>
+                        <div class="row">
+                            {% for table in tables %}
+                            <div class="col-6 mb-2">
+                                <span class="badge bg-secondary">{{ table }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Database Type</h6>
+                        <span class="badge bg-info">SQLite</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Location</h6>
+                        <code class="small">instance/heart_disease_app.db</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools text-warning me-2"></i>
+                        Maintenance Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-bell-slash text-warning mb-3" style="font-size: 2rem;"></i>
+                                    <h6 class="card-title">Clear Notifications</h6>
+                                    <p class="card-text small text-muted">Remove all system notifications</p>
+                                    <form method="POST" action="{{ url_for('clear_notifications') }}">
+                                        <button type="submit" class="btn btn-outline-warning btn-sm" 
+                                                onclick="return confirm('Are you sure you want to clear all notifications? This action cannot be undone.')">
+                                            <i class="fas fa-trash me-1"></i>
+                                            Clear All
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-download text-info mb-3" style="font-size: 2rem;"></i>
+                                    <h6 class="card-title">Export Data</h6>
+                                    <p class="card-text small text-muted">Export system data for backup</p>
+                                    <form method="POST" action="{{ url_for('export_data') }}">
+                                        <button type="submit" class="btn btn-outline-info btn-sm">
+                                            <i class="fas fa-download me-1"></i>
+                                            Export Data
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-cog text-secondary mb-3" style="font-size: 2rem;"></i>
+                                    <h6 class="card-title">System Settings</h6>
+                                    <p class="card-text small text-muted">Configure system parameters</p>
+                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                        <i class="fas fa-cog me-1"></i>
+                                        Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Logs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt text-primary me-2"></i>
+                        System Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Application Details</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <strong>Application Name:</strong> HeartGuardian
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Version:</strong> 1.0.0
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Framework:</strong> Flask
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Database:</strong> SQLite
+                                </li>
+                                <li class="mb-2">
+                                    <strong>ML Model:</strong> Heart Disease Prediction
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Security Information</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <strong>Admin Users:</strong> {{ total_users }} total
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Session Management:</strong> Active
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Password Hashing:</strong> Werkzeug
+                                </li>
+                                <li class="mb-2">
+                                    <strong>CSRF Protection:</strong> Enabled
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Access Control:</strong> Role-based
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        location.reload();
+    }, 30000);
+});
+</script>
+{% endblock %} 
